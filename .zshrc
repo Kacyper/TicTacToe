@@ -1,0 +1,1 @@
+export PATH_TO_FX=/Library/Java/javafx-sdk-17.0.0.1/lib
