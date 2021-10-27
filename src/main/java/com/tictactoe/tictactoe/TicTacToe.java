@@ -5,7 +5,10 @@ import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.control.*;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.RadioButton;
+import javafx.scene.control.ToggleGroup;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
@@ -14,9 +17,22 @@ import javafx.scene.shape.Line;
 import javafx.scene.shape.StrokeLineCap;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
-import java.util.*;
 
-public class TicTacToe extends Application {
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.Serializable;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Random;
+import java.util.stream.Stream;
+
+
+public class TicTacToe extends Application implements Serializable {
 
     private final Image imageback = new Image("file:src/main/resources/com/tictactoe/tic_tac_toe/background.jpg");
     private final ImageView board = new ImageView("file:src/main/resources/com/tictactoe/tic_tac_toe/board.png");
@@ -33,9 +49,14 @@ public class TicTacToe extends Application {
     private final Random random = new Random();
     private int difficulty = 0;
 
+
     private final Label label = new Label();
 
+
     private final Button newGame = new Button("New Game");
+    private final Button saveGame = new Button("Save Game");
+    private final Button loadGame = new Button("Load Game");
+
 
     private final RadioButton easy = new RadioButton("Easy");
     private final RadioButton hard = new RadioButton("Hard");
@@ -52,6 +73,7 @@ public class TicTacToe extends Application {
     private static final String Win = "Congratulations, you win!";
     private static final String Lose = "Bummer!\nTry again!";
 
+
     private int lastMove;
     private int lastComputerMove;
     private int lastPlayerMove;
@@ -59,14 +81,16 @@ public class TicTacToe extends Application {
     private final int[] winningLine = new int[3];
 
 
-    private final Line leftToRight = new Line(1.0f, 1.0f, 400.0f, 400.0f);
-    private final Line rightToLeft = new Line(1.0f, 400.0f, 400.0f, 1.0f);
+
+    private final Line leftToRight = new Line(1.0f, 1.0f, 350.0f, 350.0f);
+    private final Line rightToLeft = new Line(1.0f, 350.0f, 350.0f, 1.0f);
     private final Line topLine = new Line(1.0f, 70.0f, 400.0f, 70f);
     private final Line middleLine = new Line(1.0f, 190.0f, 400.0f, 190.0f);
     private final Line bottomLine = new Line(1.0f, 330.0f, 400.0f, 330.0f);
     private final Line leftTopDown = new Line(80.0f, 1.0f, 40.0f, 400.0f);
     private final Line middleTopDown = new Line(190.0f, 1.0f, 140.0f, 400.0f);
     private final Line rightTopDown = new Line(330.0f, 1.0f, 280.0f, 400.0f);
+
 
     private boolean checkThree(int index1, int index2, int index3) {
         if(buttons.get(index1).isDisabled() && buttons.get(index2).isDisabled() && buttons.get(index3).isDisabled() && (buttons.get(index1).getId()).equals(buttons.get(index2).getId()) && buttons.get(index1).getId().equals(buttons.get(index3).getId())) {
@@ -259,6 +283,40 @@ public class TicTacToe extends Application {
         }
     }
 
+    public void saveGame() {
+        try {
+            BufferedWriter writer = new BufferedWriter(new FileWriter("src/main/resources/com/tictactoe/tic_tac_toe/save.text"));
+
+            for(Button button:buttons) {
+                writer.write(button.getId());
+                writer.newLine();
+            }
+            writer.write(difficulty + "");
+            writer.newLine();
+            writer.write(lastComputerMove + "");
+            writer.newLine();
+            writer.write(lastPlayerMove + "");
+            writer.newLine();
+            writer.write(lastMove + "");
+            writer.newLine();
+            writer.close();
+        } catch(Exception e) {
+            System.out.println("Cannot save " + e);
+        }
+    }
+
+    public void loadGame() {
+        Path file = Paths.get("src/main/resources/com/tictactoe/tic_tac_toe/save.text");
+
+        try (Stream<String> stream = Files.lines(file)) {
+
+            stream.forEach(System.out::println);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
     @Override
     public void start(Stage primaryStage) throws Exception {
 
@@ -267,13 +325,15 @@ public class TicTacToe extends Application {
         Background background = new Background(backgroundImage);
 
         Collections.addAll(lines,leftToRight, rightToLeft, topLine, middleLine, bottomLine, leftTopDown, middleTopDown, rightTopDown);
-        Collections.addAll(controlButtons,newGame);
+        Collections.addAll(controlButtons,newGame, saveGame, loadGame);
+        easy.setSelected(true);
+        setEmptyButtons();
         Collections.addAll(difficultyLevel, easy, hard);
+
 
         label.setTextFill(Color.rgb(41, 73, 115, 1.0));
         label.setFont(new Font("Helvetica", 22));
         label.setPadding(new Insets(0.0, 0.0, 10.0, 20.0));
-
 
 
         for(Button controlButton:controlButtons) {
@@ -293,6 +353,8 @@ public class TicTacToe extends Application {
         }
 
         newGame.setOnAction(event -> newGame());
+        saveGame.setOnAction(event -> saveGame());
+        loadGame.setOnAction(event -> loadGame());
 
         board.setOpacity(1.0);
 
@@ -306,7 +368,7 @@ public class TicTacToe extends Application {
             radioButton.setOnMouseExited(event -> radioButton.setTextFill(Color.rgb(41, 73, 115)));
             radioButton.setOnMousePressed(event -> radioButton.setTextFill(Color.rgb(242, 242, 242)));
         }
-
+        
         easy.setOnMouseClicked(event -> difficulty = 0);
         hard.setOnMouseClicked(event -> difficulty = 1);
 
@@ -314,10 +376,12 @@ public class TicTacToe extends Application {
         bottomButtonBar.setPadding(new Insets(0.0, 100.0, 0.0, 100.0));
 
         downButtonBar.getChildren().addAll(controlButtons);
-        downButtonBar.setPadding(new Insets(20.0, 100.0, 5.0, 50.0));
+        downButtonBar.setPadding(new Insets(20.0, 0.0, 5.0, 0.0));
+
+
 
         grid.setAlignment(Pos.TOP_CENTER);
-        grid.setGridLinesVisible(true);
+        grid.setGridLinesVisible(false);
         grid.setBackground(background);
         grid.setAlignment(Pos.CENTER);
         grid.add(pane, 0, 1, 3, 3);
@@ -352,13 +416,14 @@ public class TicTacToe extends Application {
             }
         }
 
-        Scene scene = new Scene(grid, 800, 800, Color.WHITE);
+
+        Scene scene = new Scene(grid, 1200, 1200, Color.WHITE);
 
         primaryStage.setResizable(false);
         primaryStage.setTitle("Tic Tac Toe");
         primaryStage.setScene(scene);
         primaryStage.show();
-        primaryStage.isAlwaysOnTop();
+        primaryStage.setAlwaysOnTop(true);
 
 
 
